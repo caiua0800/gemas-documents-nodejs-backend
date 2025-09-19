@@ -13,7 +13,6 @@ app.use(express.json());
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) return "";
-  // Garante que o valor é tratado como número antes de formatar
   return Number(value).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -24,10 +23,8 @@ handlebars.registerHelper("formatCurrency", formatCurrency);
 
 app.post("/generate-pdf", async (req, res) => {
   try {
-    // **CORREÇÃO AQUI: Usar os dados do corpo da requisição**
     const { contractData, clientData } = req.body;
 
-    // Validação para garantir que os dados necessários foram recebidos
     if (!contractData || !clientData || !clientData.name) {
       return res
         .status(400)
@@ -55,7 +52,7 @@ app.post("/generate-pdf", async (req, res) => {
     const templateData = {
       clientName: clientData.name.toUpperCase(),
       clientCpfCnpj: clientData.cpfCnpj,
-      clientRg: clientData.rg, // Será nulo se não vier, e o template Handlebars vai lidar com isso
+      clientRg: clientData.rg,
       clientAddress: clientData.address.fullAddress,
       contractAmount: contractData.amount,
       contractDuration: contractData.duration,
@@ -73,10 +70,14 @@ app.post("/generate-pdf", async (req, res) => {
     const template = handlebars.compile(templateHtml);
     const finalHtml = template(templateData);
 
+    // *** CORREÇÃO FINAL AQUI ***
     const browser = await puppeteer.launch({
-      headless: true,
+      headless: "new", // Usando o novo modo Headless como recomendado pelo aviso
+      executablePath: "/usr/bin/google-chrome-stable", // Força o uso do Chrome instalado no sistema
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+    // *** FIM DA CORREÇÃO ***
+
     const page = await browser.newPage();
 
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
